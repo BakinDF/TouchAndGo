@@ -31,7 +31,7 @@ import cv2
 import numpy as np
 
 # Global variables preset
-total_photos = 50
+total_photos = 100
 
 # Camera resolution
 photo_width = 1280
@@ -96,7 +96,7 @@ def show_undistortion():
             exit(0)
     except:
         print(
-            "Camera calibration data not found in cache, file " & './calibration_data/{}p/camera_calibration{}.npz'.format(
+            "Camera calibration data not found in cache, file " + './calibration_data/{}p/camera_calibration{}.npz'.format(
                 h, '_left'))
         exit(0)
     grayL = cv2.cvtColor(cv2.imread(imageToDispL, 1), cv2.COLOR_BGR2GRAY)
@@ -140,7 +140,7 @@ def show_rectification():
         npzfile = np.load('./calibration_data/{}p/stereo_camera_calibration.npz'.format(480))
     except:
         print(
-            "Camera calibration data not found in cache, file " & './calibration_data/{}p/stereo_camera_calibration.npz'.format(
+            "Camera calibration data not found in cache, file " + './calibration_data/{}p/stereo_camera_calibration.npz'.format(
                 480))
         exit(0)
 
@@ -207,9 +207,6 @@ def show_rectification():
 if (drawCorners):
     print("You can press 'Q' to quit this script.")
 
-show_rectification()
-show_undistortion()
-quit()
 # Main processing cycle
 # We process all calibration images and fill up 'imgpointsLeft' and 'objpointsRight'
 # arrays with found coordinates of the chessboard

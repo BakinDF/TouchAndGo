@@ -153,32 +153,37 @@ rightMapY = npzfile['rightMapY']
 
 
 # capture frames from the camera
-while 1:
-    t1 = datetime.now()
-    imgLeft, imgRight = man.get_stereo()
-    imgLeft = cv2.cvtColor(imgLeft, cv2.COLOR_BGR2GRAY)
-    imgRight = cv2.cvtColor(imgRight, cv2.COLOR_BGR2GRAY)
-    imgL = cv2.remap(imgLeft, leftMapX, leftMapY, interpolation=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)
-    imgR = cv2.remap(imgRight, rightMapX, rightMapY, interpolation=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)
-    
-    if (useStripe):
-        imgRcut = imgR [80:160,0:int(img_width/2)]
-        imgLcut = imgL [80:160,0:int(img_width/2)]
-    else:
-        imgRcut = imgR
-        imgLcut = imgL
-    rectified_pair = (imgLcut, imgRcut)
-    disparity = stereo_depth_map(rectified_pair)
-    # show the frame
-    cv2.imshow("left", imgLcut)
-    cv2.imshow("right", imgRcut)
-    key = cv2.waitKey(1) & 0xFF
+try:
+    while 1:
+        t1 = datetime.now()
+        imgLeft, imgRight = man.get_stereo()
+        imgLeft = cv2.cvtColor(imgLeft, cv2.COLOR_BGR2GRAY)
+        imgRight = cv2.cvtColor(imgRight, cv2.COLOR_BGR2GRAY)
+        imgL = cv2.remap(imgLeft, leftMapX, leftMapY, interpolation=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)
+        imgR = cv2.remap(imgRight, rightMapX, rightMapY, interpolation=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)
 
-    # Press 'Q' key to quit, or wait till all photos are taken
-    if key == ord("q"):
-        break
+        if (useStripe):
+            imgRcut = imgR[:img_height // 2,100:img_width - 100]
+            imgLcut = imgL[:img_height // 2,100:img_width - 100]
 
-    t2 = datetime.now()
-    print ("DM build time: " + str(t2-t1))
+            imgRcut = imgR[:img_height // 2, 100:img_width - 100]
+            imgLcut = imgL[:img_height // 2, 100:img_width - 100]
+        else:
+            imgRcut = imgR
+            imgLcut = imgL
+        rectified_pair = (imgLcut, imgRcut)
+        disparity = stereo_depth_map(rectified_pair)
+        # show the frame
+        cv2.imshow("left", imgLcut)
+        cv2.imshow("right", imgRcut)
+        key = cv2.waitKey(1) & 0xFF
 
+        # Press 'Q' key to quit, or wait till all photos are taken
+        if key == ord("q"):
+            break
 
+        t2 = datetime.now()
+        print ("DM build time: " + str(t2-t1))
+
+finally:
+    man.stop()

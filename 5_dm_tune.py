@@ -76,7 +76,7 @@ try:
     npzfile = np.load('./calibration_data/{}p/stereo_camera_calibration.npz'.format(480))
 except:
     print(
-        "Camera calibration data not found in cache, file " & './calibration_data/{}p/stereo_camera_calibration.npz'.format(
+        "Camera calibration data not found in cache, file " + './calibration_data/{}p/stereo_camera_calibration.npz'.format(
             480))
     exit(0)
 
