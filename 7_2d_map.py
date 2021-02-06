@@ -32,9 +32,10 @@ import numpy as np
 import json
 from datetime import datetime
 from camera_manager import *
+from motor_manager import *
 
 print("You can press 'Q' to quit this script!")
-time.sleep(5)
+time.sleep(2)
 
 # Visualization settings
 showDisparity = True
@@ -79,6 +80,8 @@ q = np.array([
 ])
 
 man = CameraManager()
+motor_man = MotorManager(*PINS)
+motor_man.start()
 
 # Initialize interface windows
 cv2.namedWindow("Image")
@@ -98,7 +101,6 @@ def stereo_depth_map(rectified_pair):
     disparity = sbm.compute(dmLeft, dmRight)
     local_max = disparity.max()
     local_min = disparity.min()
-    # print(local_max, local_min)
     disparity_grayscale = (disparity - autotune_min) * (65535.0 / (autotune_max - autotune_min))
     disparity_fixtype = cv2.convertScaleAbs(disparity_grayscale, alpha=(255.0 / 65535.0))
     disparity_color = cv2.applyColorMap(disparity_fixtype, cv2.COLORMAP_JET)
@@ -182,8 +184,6 @@ try:
 
         # Disparity map calculation
         disparity, disparity_bw, native_disparity = stereo_depth_map(rectified_pair)
-        print('max:', np.amax(native_disparity))
-        print('min:', np.amin(native_disparity))
         maximized_line = native_disparity
 
         maxInColumns = []
@@ -191,11 +191,20 @@ try:
         for i in range(len(maximized_line)):
             arr = rotated_lines[i]
             maxInColumns.append(np.mean(arr[arr != -288]))
-        maxInColumns = maxInColumns.reverse()
-        res = []
-        for i in range(80):
-            res.append(maxInColumns)
-        # np.mean(maximized_line, 0) * 2
+        maxInColumns.reverse()
+        res = [maxInColumns] * 20
+
+        maxInColumns = maxInColumns[:-18]
+
+        quat_length = len(maxInColumns) // 4
+        motor_man.set_mode(MOTOR_PIN_1, motor_man.get_needed_mode(np.amax(maxInColumns[:quat_length])))
+        motor_man.set_mode(MOTOR_PIN_2, motor_man.get_needed_mode(np.amax(maxInColumns[quat_length:quat_length*2])))
+        motor_man.set_mode(MOTOR_PIN_3, motor_man.get_needed_mode(np.amax(maxInColumns[quat_length*2:quat_length*3])))
+        motor_man.set_mode(MOTOR_PIN_4, motor_man.get_needed_mode(np.amax(maxInColumns[quat_length*3:])))
+        print()
+        #t2 = datetime.now()
+        #print("DM build time: " + str(t2 - t1))
+
 
         # "Jumping colors" protection for depth map visualization
         if autotune_max < np.amax(maximized_line):
@@ -221,7 +230,9 @@ try:
         if (showColorizedDistanceLine):
             cv2.imshow("Max distance line", max_line_color)
         t2 = datetime.now()
-        print("DM build time: " + str(t2 - t1))
+        #print("DM build time: " + str(t2 - t1))
 finally:
     man.stop()
+    motor_man.set_all_idle()
+    motor_man.stop()
     sleep(2)

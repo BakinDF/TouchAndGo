@@ -23,8 +23,8 @@ def renew_right(manager):
 
 class CameraManager:
     def __init__(self):
-        self.left_cap = cv2.VideoCapture(0)
-        self.right_cap = cv2.VideoCapture(2)
+        self.left_cap = cv2.VideoCapture(2)
+        self.right_cap = cv2.VideoCapture(0)
         self.left_cap.set(cv2.CAP_PROP_FPS, 10)
         self.right_cap.set(cv2.CAP_PROP_FPS, 10)
         try:
