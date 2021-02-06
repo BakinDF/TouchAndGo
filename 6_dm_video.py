@@ -187,3 +187,4 @@ try:
 
 finally:
     man.stop()
+    sleep(2)

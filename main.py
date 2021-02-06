@@ -1,11 +1,12 @@
 import RPi.GPIO as GPIO
 from time import sleep
 from threading import Thread
+from random import choice, random
 
-MOTOR_PIN_1 = 40
-MOTOR_PIN_2 = 38
-MOTOR_PIN_3 = 36
-MOTOR_PIN_4 = 32
+MOTOR_PIN_1 = 36
+MOTOR_PIN_2 = 40
+MOTOR_PIN_3 = 22
+MOTOR_PIN_4 = 26
 PINS = [MOTOR_PIN_1, MOTOR_PIN_2, MOTOR_PIN_3, MOTOR_PIN_4]
 
 
@@ -13,25 +14,27 @@ def operate_motors(motor_id, manager):
     on = True
     while manager.running:
         timeout = manager.current_modes[motor_id]
-        if not timeout:
+        if abs(timeout) < 0.001:
             GPIO.output(motor_id, GPIO.LOW)
             sleep(0.5)
             continue
         if on:
             GPIO.output(motor_id, GPIO.LOW)
             on = False
+            sleep(timeout)
         else:
             GPIO.output(motor_id, GPIO.HIGH)
             on = True
-        sleep(timeout)
+            sleep(0.01)
+    GPIO.output(motor_id, GPIO.LOW)
 
 
 class MotorManager:
     IDLE = 0
-    LOW = 0.1
-    MEDIUM = 0.02
-    HIGH = 0.01
-    CRITICAL = 0.003
+    LOW = 0.2
+    MEDIUM = 0.1
+    HIGH = 0.05
+    CRITICAL = 0.02
 
     def __init__(self, *pins):
         GPIO.setmode(GPIO.BOARD)
@@ -59,22 +62,49 @@ class MotorManager:
         threads = [Thread(target=operate_motors,
                           args=(pin, self)).start() for pin in self.current_modes.keys()]
 
+    def set_all_idle(self):
+        for i in self.current_modes.keys():
+            self.set_mode(i, MotorManager.IDLE)
+
     def stop(self):
         self.running = False
         sleep(0.5)
 
 
 try:
-    motor_manager = MotorManager(*PINS[:-2])
+    motor_manager = MotorManager(*PINS)
     motor_manager.start()
     print('manager started')
-    motor_manager.set_mode(MOTOR_PIN_1, MotorManager.MEDIUM)
+    for i in range(30):
+        motor_manager.set_mode(choice(PINS), choice([MotorManager.IDLE, MotorManager.LOW,
+                                              MotorManager.MEDIUM, MotorManager.HIGH,
+                                              MotorManager.CRITICAL]))
+        sleep(random() * 2)
+    raise KeyboardInterrupt
+
+    #motor_manager.set_mode(MOTOR_PIN_1, MotorManager.LOW)
+    #sleep(3)
+    #motor_manager.set_all_idle()
     motor_manager.set_mode(MOTOR_PIN_2, MotorManager.LOW)
-    sleep(10)
+    sleep(3)
+    motor_manager.set_mode(MOTOR_PIN_2, MotorManager.MEDIUM)
+    sleep(3)
+    motor_manager.set_mode(MOTOR_PIN_2, MotorManager.HIGH)
+    sleep(3)
+    motor_manager.set_mode(MOTOR_PIN_2, MotorManager.CRITICAL)
+    sleep(3)
+    motor_manager.set_all_idle()
+    '''
+    motor_manager.set_mode(MOTOR_PIN_3, MotorManager.LOW)
+    sleep(3)
+    motor_manager.set_all_idle()
+    motor_manager.set_mode(MOTOR_PIN_4, MotorManager.LOW)
+    sleep(3)
+    motor_manager.set_all_idle()'''
     motor_manager.stop()
     print('stopped')
     raise KeyboardInterrupt
-except KeyboardInterrupt:
+finally:
     try:
         motor_manager.stop()
     except Exception:
