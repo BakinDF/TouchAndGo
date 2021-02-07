@@ -1,32 +1,27 @@
-# Copyright (C) 2019 Eugene a.k.a. Realizator, stereopi.com, virt2real team
+# Copyright (C) 2021 Denis Bakin a.k.a. MrEmgin
 #
-# This file is part of StereoPi tutorial scripts.
+# This file is a part of TouchAndGo project for blind people.
+# It was completed as an individual project in the 10th grade
 #
-# StereoPi tutorial is free software: you can redistribute it 
+# TouchAndGo is free software: you can redistribute it
 # and/or modify it under the terms of the GNU General Public License
-# as published by the Free Software Foundation, either version 3 of the 
+# as published by the Free Software Foundation, either version 3 of the
 # License, or (at your option) any later version.
 #
-# StereoPi tutorial is distributed in the hope that it will be useful,
+# TouchAndGo is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with StereoPi tutorial.  
+# along with TouchAndGo tutorial.
 # If not, see <http://www.gnu.org/licenses/>.
 #
 #          <><><> SPECIAL THANKS: <><><>
 #
-# Thanks to Adrian and http://pyimagesearch.com, as a lot of
-# code in this tutorial was taken from his lessons.
-#  
-# Thanks to RPi-tankbot project: https://github.com/Kheiden/RPi-tankbot
-#
-# Thanks to rakali project: https://github.com/sthysel/rakali
+# Thanks for StereoPi tutorial https://github.com/realizator/stereopi-fisheye-robot
+# for base concepts of stereovision in OpenCV
 
-
-from picamera import PiCamera
 import time
 import cv2
 import numpy as np
@@ -34,7 +29,7 @@ import json
 from datetime import datetime
 from camera_manager import *
 
-print ("You can press Q to quit this script!")
+print("You can press Q to quit this script!")
 time.sleep(2)
 
 # Depth map default preset
@@ -48,7 +43,6 @@ UR = 10
 SR = 14
 SPWS = 100
 
-# Use the whole image or a stripe for depth map?
 useStripe = False
 dm_colors_autotune = True
 disp_max = -100000
@@ -66,20 +60,17 @@ scale_ratio = 0.5
 # Buffer for captured image settings
 img_width = 640
 img_height = 480
-print ("Scaled image resolution: "+str(img_width)+" x "+str(img_height))
+print("Scaled image resolution: " + str(img_width) + " x " + str(img_height))
 
 man = CameraManager()
-# Initialize the camera
-#camera.hflip = True
 
 # Initialize interface windows
 cv2.namedWindow("Image")
-cv2.moveWindow("Image", 50,100)
+cv2.moveWindow("Image", 50, 100)
 cv2.namedWindow("left")
-cv2.moveWindow("left", 450,100)
+cv2.moveWindow("left", 450, 100)
 cv2.namedWindow("right")
-cv2.moveWindow("right", 850,100)
-
+cv2.moveWindow("right", 850, 100)
 
 disparity = np.zeros((img_width, img_height), np.uint8)
 sbm = cv2.StereoBM_create(numDisparities=0, blockSize=21)
@@ -94,36 +85,37 @@ def stereo_depth_map(rectified_pair):
     local_max = disparity.max()
     local_min = disparity.min()
     if (dm_colors_autotune):
-        disp_max = max(local_max,disp_max)
-        disp_min = min(local_min,disp_min)
+        disp_max = max(local_max, disp_max)
+        disp_min = min(local_min, disp_min)
         local_max = disp_max
         local_min = disp_min
         print(disp_max, disp_min)
-    disparity_grayscale = (disparity-local_min)*(65535.0/(local_max-local_min))
-    #disparity_grayscale = (disparity+208)*(65535.0/1000.0) # test for jumping colors prevention 
-    disparity_fixtype = cv2.convertScaleAbs(disparity_grayscale, alpha=(255.0/65535.0))
+    disparity_grayscale = (disparity - local_min) * (65535.0 / (local_max - local_min))
+    # disparity_grayscale = (disparity+208)*(65535.0/1000.0) # test for jumping colors prevention
+    disparity_fixtype = cv2.convertScaleAbs(disparity_grayscale, alpha=(255.0 / 65535.0))
     disparity_color = cv2.applyColorMap(disparity_fixtype, cv2.COLORMAP_JET)
     cv2.imshow("Image", disparity_color)
-    key = cv2.waitKey(1) & 0xFF   
+    key = cv2.waitKey(1) & 0xFF
     if key == ord("q"):
         quit()
     return disparity_color
 
-def load_map_settings( fName ):
+
+def load_map_settings(fName):
     global SWS, PFS, PFC, MDS, NOD, TTH, UR, SR, SPWS, loading_settings
     print('Loading parameters from file...')
-    f=open(fName, 'r')
+    f = open(fName, 'r')
     data = json.load(f)
-    SWS=data['SADWindowSize']
-    PFS=data['preFilterSize']
-    PFC=data['preFilterCap']
-    MDS=data['minDisparity']
-    NOD=data['numberOfDisparities']
-    TTH=data['textureThreshold']
-    UR=data['uniquenessRatio']
-    SR=data['speckleRange']
-    SPWS=data['speckleWindowSize']    
-    #sbm.setSADWindowSize(SWS)
+    SWS = data['SADWindowSize']
+    PFS = data['preFilterSize']
+    PFC = data['preFilterCap']
+    MDS = data['minDisparity']
+    NOD = data['numberOfDisparities']
+    TTH = data['textureThreshold']
+    UR = data['uniquenessRatio']
+    SR = data['speckleRange']
+    SPWS = data['speckleWindowSize']
+    # sbm.setSADWindowSize(SWS)
     sbm.setPreFilterType(1)
     sbm.setPreFilterSize(PFS)
     sbm.setPreFilterCap(PFC)
@@ -134,25 +126,23 @@ def load_map_settings( fName ):
     sbm.setSpeckleRange(SR)
     sbm.setSpeckleWindowSize(SPWS)
     f.close()
-    print ('Parameters loaded from file '+fName)
+    print('Parameters loaded from file ' + fName)
 
 
-load_map_settings ("3dmap_set.txt")
+load_map_settings("3dmap_set.txt")
 try:
     npzfile = np.load('./calibration_data/{}p/stereo_camera_calibration.npz'.format(img_height))
 except:
-    print("Camera calibration data not found in cache, file ", './calibration_data/{}p/stereo_camera_calibration.npz'.format(img_height))
+    print("Camera calibration data not found in cache, file ",
+          './calibration_data/{}p/stereo_camera_calibration.npz'.format(img_height))
     exit(0)
-    
+
 imageSize = tuple(npzfile['imageSize'])
 leftMapX = npzfile['leftMapX']
 leftMapY = npzfile['leftMapY']
 rightMapX = npzfile['rightMapX']
 rightMapY = npzfile['rightMapY']
 
-
-
-# capture frames from the camera
 try:
     while 1:
         t1 = datetime.now()
@@ -163,9 +153,6 @@ try:
         imgR = cv2.remap(imgRight, rightMapX, rightMapY, interpolation=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)
 
         if (useStripe):
-            imgRcut = imgR[:img_height // 2,100:img_width - 100]
-            imgLcut = imgL[:img_height // 2,100:img_width - 100]
-
             imgRcut = imgR[:img_height // 2, 100:img_width - 100]
             imgLcut = imgL[:img_height // 2, 100:img_width - 100]
         else:
@@ -183,8 +170,9 @@ try:
             break
 
         t2 = datetime.now()
-        print ("DM build time: " + str(t2-t1))
+        print("DM build time: " + str(t2 - t1))
 
 finally:
+    # it's strongly recommended to use try-finally syntax to stop camera threads correctly
     man.stop()
     sleep(2)

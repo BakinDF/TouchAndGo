@@ -1,30 +1,26 @@
-# Copyright (C) 2019 Eugene a.k.a. Realizator, stereopi.com, virt2real team
+# Copyright (C) 2021 Denis Bakin a.k.a. MrEmgin
 #
-# This file is part of StereoPi tutorial scripts.
+# This file is a part of TouchAndGo project for blind people.
+# It was completed as an individual project in the 10th grade
 #
-# StereoPi tutorial is free software: you can redistribute it 
+# TouchAndGo is free software: you can redistribute it
 # and/or modify it under the terms of the GNU General Public License
-# as published by the Free Software Foundation, either version 3 of the 
+# as published by the Free Software Foundation, either version 3 of the
 # License, or (at your option) any later version.
 #
-# StereoPi tutorial is distributed in the hope that it will be useful,
+# TouchAndGo is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with StereoPi tutorial.  
+# along with TouchAndGo tutorial.
 # If not, see <http://www.gnu.org/licenses/>.
 #
 #          <><><> SPECIAL THANKS: <><><>
 #
-# Thanks to Adrian and http://pyimagesearch.com, as a lot of
-# code in this tutorial was taken from his lessons.
-#  
-# Thanks to RPi-tankbot project: https://github.com/Kheiden/RPi-tankbot
-#
-# Thanks to rakali project: https://github.com/sthysel/rakali
-
+# Thanks for StereoPi tutorial https://github.com/realizator/stereopi-fisheye-robot
+# for base concepts of stereovision in OpenCV
 
 import time
 import cv2
@@ -41,6 +37,7 @@ time.sleep(2)
 showDisparity = True
 showUndistortedImages = False
 showColorizedDistanceLine = True
+stripImage = True
 
 # Depth map default preset
 SWS = 5
@@ -53,17 +50,9 @@ UR = 10
 SR = 14
 SPWS = 100
 
-# Camera settimgs
-cam_width = 1280
-cam_height = 480
-
-# Final image capture settings
-scale_ratio = 0.5
-
-# Buffer for captured image settings
 img_width = 640
 img_height = 480
-print("Scaled image resolution: " + str(img_width) + " x " + str(img_height))
+print("Image resolution: " + str(img_width) + " x " + str(img_height))
 
 # Depth Map colors autotune
 autotune_min = 10000000
@@ -79,7 +68,9 @@ q = np.array([
     [0, 0, -1 / tx, 0]
 ])
 
+# initializing camera manager
 man = CameraManager()
+# initializing motor manager
 motor_man = MotorManager(*PINS)
 motor_man.start()
 
@@ -173,34 +164,36 @@ try:
         imgL = cv2.remap(imgLeft, leftMapX, leftMapY, interpolation=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)
         imgR = cv2.remap(imgRight, rightMapX, rightMapY, interpolation=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)
 
-        # Taking a strip from our image for lidar-like mode (and saving CPU)
-        imgRcut = imgR[100:-100, :]
-        imgLcut = imgL[100:-100, :]
-        # imgRcut = imgR
-        # imgLcut = imgL
+        # Taking a strip from our image for saving CPU (or using lidar-like mode)
+        if stripImage:
+            imgRcut = imgR[100:-100, :]
+            imgLcut = imgL[100:-100, :]
+        else:
+            imgRcut = imgR
+            imgLcut = imgL
         rectified_pair = (imgLcut, imgRcut)
 
         # Disparity map calculation
         native_disparity = stereo_depth_map(rectified_pair)
         maximized_line = native_disparity
-
+        # calculation mean distance in each column excluding values below zero
         maxInColumns = []
-        # print(len(maximized_line))
         rotated_lines = np.rot90(maximized_line, k=-1)
         for i in range(len(rotated_lines)):
             arr = rotated_lines[i]
             maxInColumns.append(np.mean(arr[arr > 0]))
+        # cutting off constant "nan" values because of preset disparity num (in DM calibration)
+        # change slice indexes manualy for your calibration settings
         maxInColumns = maxInColumns[110:-20]
 
         quat_length = len(maxInColumns) // 4
+        # calculating max value in each quater (num of motors==4) and setting motors' modes
         motor_man.set_mode(MOTOR_PIN_1, motor_man.get_needed_mode(np.amax(maxInColumns[:quat_length])))
         motor_man.set_mode(MOTOR_PIN_2, motor_man.get_needed_mode(np.amax(maxInColumns[quat_length:quat_length * 2])))
         motor_man.set_mode(MOTOR_PIN_3,
                            motor_man.get_needed_mode(np.amax(maxInColumns[quat_length * 2:quat_length * 3])))
         motor_man.set_mode(MOTOR_PIN_4, motor_man.get_needed_mode(np.amax(maxInColumns[quat_length * 3:])))
         print()
-        t2 = datetime.now()
-        print("DM build time: " + str(t2 - t1))
 
         if showColorizedDistanceLine or showUndistortedImages:
             # "Jumping colors" protection for depth map visualization
@@ -223,7 +216,12 @@ try:
                 cv2.imshow("right", imgRcut)
             if (showColorizedDistanceLine):
                 cv2.imshow("Max distance line", max_line_color)
+        t2 = datetime.now()
+        print("DM build time: " + str(t2 - t1))
+
 finally:
+    # it's strongly recommended to use
+    # try-finally syntax to stop cameraand motor threads correctly
     man.stop()
     motor_man.set_all_idle()
     motor_man.stop()

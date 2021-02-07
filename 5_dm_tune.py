@@ -1,29 +1,26 @@
-# Copyright (C) 2019 Eugene a.k.a. Realizator, stereopi.com, virt2real team
+# Copyright (C) 2021 Denis Bakin a.k.a. MrEmgin
 #
-# This file is part of StereoPi tutorial scripts.
+# This file is a part of TouchAndGo project for blind people.
+# It was completed as an individual project in the 10th grade
 #
-# StereoPi tutorial is free software: you can redistribute it 
+# TouchAndGo is free software: you can redistribute it
 # and/or modify it under the terms of the GNU General Public License
-# as published by the Free Software Foundation, either version 3 of the 
+# as published by the Free Software Foundation, either version 3 of the
 # License, or (at your option) any later version.
 #
-# StereoPi tutorial is distributed in the hope that it will be useful,
+# TouchAndGo is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with StereoPi tutorial.  
+# along with TouchAndGo tutorial.
 # If not, see <http://www.gnu.org/licenses/>.
 #
 #          <><><> SPECIAL THANKS: <><><>
 #
-# Thanks to Adrian and http://pyimagesearch.com, as a lot of
-# code in this tutorial was taken from his lessons.
-#  
-# Thanks to RPi-tankbot project: https://github.com/Kheiden/RPi-tankbot
-#
-# Thanks to rakali project: https://github.com/sthysel/rakali
+# Thanks for StereoPi tutorial https://github.com/realizator/stereopi-fisheye-robot
+# for base concepts of stereovision in OpenCV
 
 
 import cv2
@@ -39,10 +36,6 @@ from camera_manager import *
 imageToDisp = './scenes/01'
 photo_width = 640
 photo_height = 240
-image_width = 320
-image_height = 240
-
-image_size = (image_width, image_height)
 
 
 def get_left_path():
@@ -73,11 +66,11 @@ imgRight = cv2.cvtColor(imgRight, cv2.COLOR_BGR2GRAY)
 print('Read calibration data and rectifying stereo pair...')
 
 try:
-    npzfile = np.load('./calibration_data/{}p/stereo_camera_calibration.npz'.format(480))
+    npzfile = np.load('./calibration_data/{}p/stereo_camera_calibration.npz'.format(photo_height))
 except:
     print(
         "Camera calibration data not found in cache, file " + './calibration_data/{}p/stereo_camera_calibration.npz'.format(
-            480))
+            photo_height))
     exit(0)
 
 # imageSize = tuple(npzfile['imageSize'])
@@ -94,8 +87,8 @@ if 0 in [width_left, height_left, width_right, height_right]:
 
 imgL = cv2.remap(imgLeft, leftMapX, leftMapY, interpolation=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)
 imgR = cv2.remap(imgRight, rightMapX, rightMapY, interpolation=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)
-#imgL = imgLeft
-#imgR = imgRight
+# imgL = imgLeft
+# imgR = imgRight
 cv2.imshow('Left CALIBRATED', imgL)
 cv2.imshow('Right CALIBRATED', imgR)
 cv2.waitKey(0)

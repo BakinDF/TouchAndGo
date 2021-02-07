@@ -1,3 +1,27 @@
+# Copyright (C) 2021 Denis Bakin a.k.a. MrEmgin
+#
+# This file is a part of TouchAndGo project for blind people.
+# It was completed as an individual project in the 10th grade
+#
+# TouchAndGo is free software: you can redistribute it
+# and/or modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+#
+# TouchAndGo is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with TouchAndGo tutorial.
+# If not, see <http://www.gnu.org/licenses/>.
+#
+#          <><><> SPECIAL THANKS: <><><>
+#
+# Thanks for StereoPi tutorial https://github.com/realizator/stereopi-fisheye-robot
+# for base concepts of stereovision in OpenCV
+
 import RPi.GPIO as GPIO
 from time import sleep
 from threading import Thread
@@ -10,6 +34,7 @@ MOTOR_PIN_4 = 26
 PINS = [MOTOR_PIN_1, MOTOR_PIN_2, MOTOR_PIN_3, MOTOR_PIN_4]
 
 
+# turning on motor for constant time but with custom frequency (timeout)
 def operate_motors(motor_id, manager):
     on = True
     while manager.running:
@@ -30,6 +55,7 @@ def operate_motors(motor_id, manager):
 
 
 class MotorManager:
+    # vars preset for faster customisation
     IDLE = 0
     LOW = 0.2
     MEDIUM = 0.7
@@ -40,6 +66,7 @@ class MotorManager:
     MIN_VALUE = 500
 
     def __init__(self, *pins):
+        GPIO.cleanup()
         GPIO.setmode(GPIO.BOARD)
         self.current_modes = dict()
         for pin in pins:
@@ -49,6 +76,7 @@ class MotorManager:
 
     def check_motor_id(self, motor_id):
         if motor_id not in self.current_modes.keys():
+            print('wrong motor id:', motor_id)
             raise ValueError
 
     def get_mode(self, motor_id):
@@ -61,13 +89,16 @@ class MotorManager:
         # print(f'{motor_id} mode changed to {timeout}')
 
     def start(self):
+        # starting threads for each motor
         self.running = True
         threads = [Thread(target=operate_motors,
                           args=(pin, self)).start() for pin in self.current_modes.keys()]
 
     def get_needed_mode(self, value):
+        # calculating motor mode from value
         if str(value) == 'nan':
             return MotorManager.IDLE
+        # ratio is calculated as a percentage of all appropriate (min and max) values
         ratio = (value - MotorManager.MIN_VALUE) / (MotorManager.MAX_VALUE - MotorManager.MIN_VALUE)
         if ratio < 0:
             print('wrong min value', value)
@@ -101,29 +132,31 @@ if __name__ == '__main__':
         motor_manager = MotorManager(*PINS)
         motor_manager.start()
         print('manager started')
-        '''for i in range(30):
+        # comment down to 141 line and uncomment the rest to customly test motors
+        for i in range(30):
             motor_manager.set_mode(choice(PINS), choice([MotorManager.IDLE, MotorManager.LOW,
                                                          MotorManager.MEDIUM, MotorManager.HIGH,
                                                          MotorManager.CRITICAL]))
             sleep(random() * 2)
-        raise KeyboardInterrupt'''
+        raise KeyboardInterrupt
 
-        # motor_manager.set_mode(MOTOR_PIN_1, MotorManager.LOW)
-        # sleep(3)
-        # motor_manager.set_all_idle()
+        '''
         motor_manager.set_mode(MOTOR_PIN_1, MotorManager.MEDIUM)
         sleep(3)
+        motor_manager.set_all_idle()
         motor_manager.set_mode(MOTOR_PIN_2, MotorManager.MEDIUM)
         sleep(3)
-        motor_manager.set_mode(MOTOR_PIN_3, MotorManager.HIGH)
-        sleep(3)
-        motor_manager.set_mode(MOTOR_PIN_4, MotorManager.HIGH)
+        motor_manager.set_all_idle()
+        motor_manager.set_mode(MOTOR_PIN_3, MotorManager.MEDIUM)
         sleep(3)
         motor_manager.set_all_idle()
+        motor_manager.set_mode(MOTOR_PIN_4, MotorManager.MEDIUM)
+        sleep(3)
+        motor_manager.set_all_idle()'''
 
     finally:
+        # it's still stringly recommended to use try-funally syntax to stop motor manager
         try:
             motor_manager.stop()
-        except Exception:
-            pass
-        GPIO.cleanup()
+        finally:
+            GPIO.cleanup()
