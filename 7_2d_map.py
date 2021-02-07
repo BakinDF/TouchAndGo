@@ -39,7 +39,7 @@ time.sleep(2)
 
 # Visualization settings
 showDisparity = True
-showUndistortedImages = True
+showUndistortedImages = False
 showColorizedDistanceLine = True
 
 # Depth map default preset
@@ -84,12 +84,12 @@ motor_man = MotorManager(*PINS)
 motor_man.start()
 
 # Initialize interface windows
-cv2.namedWindow("Image")
+'''cv2.namedWindow("Image")
 cv2.moveWindow("Image", 50, 100)
 cv2.namedWindow("left")
 cv2.moveWindow("left", 450, 100)
 cv2.namedWindow("right")
-cv2.moveWindow("right", 850, 100)
+cv2.moveWindow("right", 850, 100)'''
 
 disparity = np.zeros((img_width, img_height), np.uint8)
 sbm = cv2.StereoBM_create(numDisparities=0, blockSize=21)
@@ -99,17 +99,15 @@ def stereo_depth_map(rectified_pair):
     dmLeft = rectified_pair[0]
     dmRight = rectified_pair[1]
     disparity = sbm.compute(dmLeft, dmRight)
-    local_max = disparity.max()
-    local_min = disparity.min()
-    disparity_grayscale = (disparity - autotune_min) * (65535.0 / (autotune_max - autotune_min))
-    disparity_fixtype = cv2.convertScaleAbs(disparity_grayscale, alpha=(255.0 / 65535.0))
-    disparity_color = cv2.applyColorMap(disparity_fixtype, cv2.COLORMAP_JET)
     if (showDisparity):
+        disparity_grayscale = (disparity - autotune_min) * (65535.0 / (autotune_max - autotune_min))
+        disparity_fixtype = cv2.convertScaleAbs(disparity_grayscale, alpha=(255.0 / 65535.0))
+        disparity_color = cv2.applyColorMap(disparity_fixtype, cv2.COLORMAP_JET)
         cv2.imshow("Image", disparity_color)
         key = cv2.waitKey(1) & 0xFF
         if key == ord("q"):
             quit()
-    return disparity_color, disparity_fixtype, disparity
+    return disparity
 
 
 def load_map_settings(fName):
@@ -176,61 +174,55 @@ try:
         imgR = cv2.remap(imgRight, rightMapX, rightMapY, interpolation=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)
 
         # Taking a strip from our image for lidar-like mode (and saving CPU)
-        # imgRcut = imgR[100:600, 60:550]
-        # imgLcut = imgL[100:600, 60:550]
-        imgRcut = imgR
-        imgLcut = imgL
+        imgRcut = imgR[100:-100, :]
+        imgLcut = imgL[100:-100, :]
+        # imgRcut = imgR
+        # imgLcut = imgL
         rectified_pair = (imgLcut, imgRcut)
 
         # Disparity map calculation
-        disparity, disparity_bw, native_disparity = stereo_depth_map(rectified_pair)
+        native_disparity = stereo_depth_map(rectified_pair)
         maximized_line = native_disparity
 
         maxInColumns = []
-        rotated_lines = np.rot90(maximized_line)
-        for i in range(len(maximized_line)):
+        # print(len(maximized_line))
+        rotated_lines = np.rot90(maximized_line, k=-1)
+        for i in range(len(rotated_lines)):
             arr = rotated_lines[i]
-            maxInColumns.append(np.mean(arr[arr != -288]))
-        maxInColumns.reverse()
-        res = [maxInColumns] * 20
-
-        maxInColumns = maxInColumns[:-18]
+            maxInColumns.append(np.mean(arr[arr > 0]))
+        maxInColumns = maxInColumns[110:-20]
 
         quat_length = len(maxInColumns) // 4
         motor_man.set_mode(MOTOR_PIN_1, motor_man.get_needed_mode(np.amax(maxInColumns[:quat_length])))
-        motor_man.set_mode(MOTOR_PIN_2, motor_man.get_needed_mode(np.amax(maxInColumns[quat_length:quat_length*2])))
-        motor_man.set_mode(MOTOR_PIN_3, motor_man.get_needed_mode(np.amax(maxInColumns[quat_length*2:quat_length*3])))
-        motor_man.set_mode(MOTOR_PIN_4, motor_man.get_needed_mode(np.amax(maxInColumns[quat_length*3:])))
+        motor_man.set_mode(MOTOR_PIN_2, motor_man.get_needed_mode(np.amax(maxInColumns[quat_length:quat_length * 2])))
+        motor_man.set_mode(MOTOR_PIN_3,
+                           motor_man.get_needed_mode(np.amax(maxInColumns[quat_length * 2:quat_length * 3])))
+        motor_man.set_mode(MOTOR_PIN_4, motor_man.get_needed_mode(np.amax(maxInColumns[quat_length * 3:])))
         print()
-        #t2 = datetime.now()
-        #print("DM build time: " + str(t2 - t1))
-
-
-        # "Jumping colors" protection for depth map visualization
-        if autotune_max < np.amax(maximized_line):
-            autotune_max = np.amax(maximized_line)
-        if autotune_min > np.amin(maximized_line):
-            autotune_min = np.amin(maximized_line)
-
-        # Choose "closest" points in each column
-        # maximized_line = maxInColumns
-
-        # Colorizing final line
-        max_line_tune = (res - autotune_min) * (65535.0 / (autotune_max - autotune_min))
-        max_line_gray = cv2.convertScaleAbs(max_line_tune, alpha=(255.0 / 65535.0))
-
-        # Change map_zoom to adjust visible range!
-        max_line_color = cv2.applyColorMap(max_line_gray, cv2.COLORMAP_JET)
-
-        # show the frame
-        # print ("Autotune: min =", autotune_min, " max =", autotune_max)
-        if (showUndistortedImages):
-            cv2.imshow("left", imgLcut)
-            cv2.imshow("right", imgRcut)
-        if (showColorizedDistanceLine):
-            cv2.imshow("Max distance line", max_line_color)
         t2 = datetime.now()
-        #print("DM build time: " + str(t2 - t1))
+        print("DM build time: " + str(t2 - t1))
+
+        if showColorizedDistanceLine or showUndistortedImages:
+            # "Jumping colors" protection for depth map visualization
+            if autotune_max < np.amax(maximized_line):
+                autotune_max = np.amax(maximized_line)
+            if autotune_min > np.amin(maximized_line):
+                autotune_min = np.amin(maximized_line)
+            # Colorizing final line
+            res = [maxInColumns] * 40
+            max_line_tune = (res - autotune_min) * (65535.0 / (autotune_max - autotune_min))
+            max_line_gray = cv2.convertScaleAbs(max_line_tune, alpha=(255.0 / 65535.0))
+
+            # Change map_zoom to adjust visible range!
+            max_line_color = cv2.applyColorMap(max_line_gray, cv2.COLORMAP_JET)
+
+            # show the frame
+            # print ("Autotune: min =", autotune_min, " max =", autotune_max)
+            if (showUndistortedImages):
+                cv2.imshow("left", imgLcut)
+                cv2.imshow("right", imgRcut)
+            if (showColorizedDistanceLine):
+                cv2.imshow("Max distance line", max_line_color)
 finally:
     man.stop()
     motor_man.set_all_idle()

@@ -32,9 +32,10 @@ def operate_motors(motor_id, manager):
 class MotorManager:
     IDLE = 0
     LOW = 0.2
-    MEDIUM = 0.75
+    MEDIUM = 0.7
     HIGH = 0.05
     CRITICAL = 0.02
+
     MAX_VALUE = 1500
     MIN_VALUE = 500
 
@@ -69,10 +70,10 @@ class MotorManager:
             return MotorManager.IDLE
         ratio = (value - MotorManager.MIN_VALUE) / (MotorManager.MAX_VALUE - MotorManager.MIN_VALUE)
         if ratio < 0:
-            print('wrong min value')
+            print('wrong min value', value)
             raise ValueError
         if ratio > 1:
-            print('wrong max value')
+            print('wrong max value', value)
             raise ValueError
 
         print(ratio, end='   ')
@@ -92,7 +93,7 @@ class MotorManager:
 
     def stop(self):
         self.running = False
-        sleep(0.5)
+        sleep(1.5)
 
 
 if __name__ == '__main__':
@@ -110,13 +111,13 @@ if __name__ == '__main__':
         # motor_manager.set_mode(MOTOR_PIN_1, MotorManager.LOW)
         # sleep(3)
         # motor_manager.set_all_idle()
-        motor_manager.set_mode(MOTOR_PIN_2, MotorManager.LOW)
-        sleep(3)
         motor_manager.set_mode(MOTOR_PIN_1, MotorManager.MEDIUM)
         sleep(3)
-        motor_manager.set_mode(MOTOR_PIN_2, MotorManager.HIGH)
+        motor_manager.set_mode(MOTOR_PIN_2, MotorManager.MEDIUM)
         sleep(3)
-        motor_manager.set_mode(MOTOR_PIN_1, MotorManager.CRITICAL)
+        motor_manager.set_mode(MOTOR_PIN_3, MotorManager.HIGH)
+        sleep(3)
+        motor_manager.set_mode(MOTOR_PIN_4, MotorManager.HIGH)
         sleep(3)
         motor_manager.set_all_idle()
 

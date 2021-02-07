@@ -18,7 +18,8 @@ img_height = 480
 counter = 0
 avgtime = 0
 # Capture frames from the camera
-
+folder_to_capture = './test_pairs/'
+i = 1
 try:
     while True:
         counter += 1
@@ -44,6 +45,12 @@ try:
         key = cv2.waitKey(1) & 0xFF
         if key == ord("q"):
             break
+        if key == ord('c'):
+            if not os.path.isdir(folder_to_capture):
+                os.mkdir(folder_to_capture)
+            cv2.imwrite(folder_to_capture + str(i).rjust(2, '0') + 'L.png', frame_left)
+            cv2.imwrite(folder_to_capture + str(i).rjust(2, '0') + 'R.png', frame_right)
+            i += 1
 finally:
     man.stop()
     print('stopped')
