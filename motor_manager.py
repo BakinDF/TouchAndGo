@@ -62,7 +62,7 @@ class MotorManager:
     HIGH = 0.05
     CRITICAL = 0.02
 
-    MAX_VALUE = 1500
+    MAX_VALUE = 1600
     MIN_VALUE = 500
 
     def __init__(self, *pins):
@@ -102,10 +102,12 @@ class MotorManager:
         ratio = (value - MotorManager.MIN_VALUE) / (MotorManager.MAX_VALUE - MotorManager.MIN_VALUE)
         if ratio < 0:
             print('wrong min value', value)
-            raise ValueError
+            #raise ValueError
+            return MotorManager.IDLE
         if ratio > 1:
             print('wrong max value', value)
-            raise ValueError
+            #raise ValueError
+            return MotorManager.CRITICAL
 
         print(ratio, end='   ')
         if ratio <= 0.25:
@@ -133,14 +135,14 @@ if __name__ == '__main__':
         motor_manager.start()
         print('manager started')
         # comment down to 141 line and uncomment the rest to customly test motors
-        for i in range(30):
+        '''for i in range(30):
             motor_manager.set_mode(choice(PINS), choice([MotorManager.IDLE, MotorManager.LOW,
                                                          MotorManager.MEDIUM, MotorManager.HIGH,
                                                          MotorManager.CRITICAL]))
             sleep(random() * 2)
-        raise KeyboardInterrupt
+        raise KeyboardInterrupt'''
 
-        '''
+
         motor_manager.set_mode(MOTOR_PIN_1, MotorManager.MEDIUM)
         sleep(3)
         motor_manager.set_all_idle()
@@ -152,7 +154,7 @@ if __name__ == '__main__':
         motor_manager.set_all_idle()
         motor_manager.set_mode(MOTOR_PIN_4, MotorManager.MEDIUM)
         sleep(3)
-        motor_manager.set_all_idle()'''
+        motor_manager.set_all_idle()
 
     finally:
         # it's still stringly recommended to use try-funally syntax to stop motor manager
